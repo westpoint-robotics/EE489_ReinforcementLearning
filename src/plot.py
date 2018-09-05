@@ -16,6 +16,7 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 import numpy as np
 import matplotlib.pyplot as pp
+import os
 
 global x,y
 global points
@@ -76,6 +77,29 @@ def init():
     global x,y
     x=0
     y=0
+
+    raw = []
+    for filename in os.listdir("/home/wborn/course"):
+        fp = open("/home/wborn/course/"+filename,'r')
+        raw.append(fp.read().split(';'))
+        fp.close()
+
+
+    points = []
+    for i in raw:
+        temp=[]
+        for j in i:
+            if j.split(',') != ['']:
+                temp.append(j.split(','))
+        points.append(temp)
+    points=[x for x in points if x != ['']]
+
+    for j in range(len(points)):
+        for i in range(len(points[j])-1):
+            pp.plot([float(points[j][i][0]),float(points[j][i+1][0])],[float(points[j][i][1]),float(points[j][i+1][1])], '-',color='black',linewidth=7.0)
+        #pp.draw()
+        #pp.pause(0.000001)
+
 
     rospy.on_shutdown(shutdown)
 

@@ -3,7 +3,6 @@
   <group ns="turtle_follow">
     <node pkg="usb_cam" name="usb_cam_node" type="usb_cam_node" output="log"/>
     <node pkg="turtle_follow" name="image_process" type="image_process.py" output="screen"/>
-    <node pkg="turtle_follow" name="drive_autonomous" type="drive_autonomous.py" output="screen"/>
   </group>
 
   <param name="trial_num" value="$(arg trial)" />

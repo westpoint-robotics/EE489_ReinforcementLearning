@@ -113,7 +113,7 @@ if gui==1:
     plots(imgs, titles=labels)
     plt.show()
 
-model1= train(train_batches,valid_batches,"model1",epochs,learning_rate,train_image_num,train_batch_size,valid_image_num,val_batch_size,1)
+model1= train(train_batches,valid_batches,"model",epochs,learning_rate,train_image_num,train_batch_size,valid_image_num,val_batch_size,1)
 
 predictions = model1.predict_classes(test_imgs, batch_size=test_batch_size,verbose=1)
 

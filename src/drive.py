@@ -2,13 +2,25 @@
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
-from std_msgs.msg import String
+from std_msgs.msg import String,Float32
 
-global buttons, axes, state, auto
+global buttons, axes, state, auto, fuzzy
 buttons = [0,0,0,0,0,0,0,0,0,0,0]
 axes = [0,0,0,0,0,0,0,0]
 state = 0;
+fuzzy =0.0
 #data = []
+
+global first_time
+
+
+global last_fuzzy, last_turn, last_time
+last_fuzzy=0
+last_turn=0
+last_time=0
+
+import numpy as np
+import matplotlib.pyplot as pp
 
 current='x'
 auto='s'
@@ -22,6 +34,11 @@ def auto_callback(data):
     global auto
     auto = data.data
 
+def fuzzy_callback(data):
+    global fuzzy
+    fuzzy = data.data
+
+
 class GoForward():
 
     def drive(self):
@@ -30,7 +47,9 @@ class GoForward():
             state=0
         elif axes[7]==-1.0:
             state=2
-        elif axes[6]==1.0 or axes[6]==-1.0:
+        elif axes[6]==1.0:
+            state=3
+        elif axes[6]==-1.0:
             state=1
 
         if state==0:
@@ -39,6 +58,8 @@ class GoForward():
             self.trials()
         elif state==2:
             self.autonomous()
+        elif state==3:
+            self.fuzzy()
 
     def trials(self):
         self.plot_pub.publish('true')
@@ -100,21 +121,45 @@ class GoForward():
         self.drive_pub.publish('x')
 
     def autonomous(self):
+        turn = 0
         self.plot_pub.publish('true')
         rospy.Subscriber("/turtle_follow/output/drive_out", String, auto_callback)
-        global auto
+        global auto,last_turn,last_time
+        rospy.loginfo(auto)
         if auto == 's':
-            self.move_cmd.linear.x = 0.15
-            self.move_cmd.angular.z = 0
+            turn=0
         elif auto == 'r':
-            self.move_cmd.linear.x = 0.15
-            self.move_cmd.angular.z = -1
+            turn=-1
         elif auto == 'l':
-            self.move_cmd.linear.x = 0.15
-            self.move_cmd.angular.z = 1
+            turn= 1
         else:
-            self.move_cmd.linear.x = 0
-            self.move_cmd.angular.z = 0
+            turn=0
+        global first_time
+        time=rospy.get_rostime().secs-first_time
+        pp.plot([last_time,time],[last_turn,turn],'b-')
+        pp.draw()
+        pp.pause(0.000001)
+        last_turn=turn
+        last_time=time
+        self.move_cmd.linear.x = 0.15
+        self.move_cmd.angular.z = turn
+        self.cmd_vel.publish(self.move_cmd)
+
+    def fuzzy(self):
+        self.plot_pub.publish('true')
+        rospy.loginfo(fuzzy)
+        rospy.Subscriber("/turtle_follow/output/fuzzy", Float32, fuzzy_callback)
+        global fuzzy, last_fuzzy, last_time
+        self.move_cmd.linear.x = .15
+        self.move_cmd.angular.z = -1*fuzzy
+        global first_time
+        time=rospy.get_rostime().secs-first_time
+        rospy.loginfo("time was "+str(time))
+        pp.plot([last_time,time],[last_fuzzy,fuzzy],'r-')
+        pp.draw()
+        pp.pause(0.000001)
+        last_fuzzy=fuzzy
+        last_time=time
         self.cmd_vel.publish(self.move_cmd)
 
     def __init__(self):
@@ -125,6 +170,7 @@ class GoForward():
 
         # tell user how to stop TurtleBot
         rospy.loginfo("To stop TurtleBot CTRL + C")
+
 
         # What function to call when you ctrl + c
         rospy.on_shutdown(self.shutdown)
@@ -146,6 +192,8 @@ class GoForward():
 
         global current
         # as long as you haven't ctrl + c keeping doing...
+        global first_time
+        first_time=rospy.get_rostime().secs
         while not rospy.is_shutdown():
             self.drive()
             r.sleep()
